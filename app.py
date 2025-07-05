@@ -1,21 +1,22 @@
+from flask import Flask, request, jsonify
 import google.generativeai as genai
 import os
 
-api_key = os.getenv("GEMINI_API_KEY")
+app = Flask(__name__)  # <-- THIS is what gunicorn is looking for
+
+api_key = os.environ.get("GOOGLE_API_KEY")
 genai.configure(api_key=api_key)
+model = genai.GenerativeModel("gemini-1.5-pro")
 
-model = genai.GenerativeModel("gemini-2.0-flash")
-chat = model.start_chat()
+@app.route("/", methods=["GET"])
+def home():
+    return "Genbot is live!"
 
-def main():
-    print("Chat with Gemini! Type 'Exit' to quit.\n")
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == "exit":
-            print("Exiting chat.")
-            break
-        response = chat.send_message(user_input)
-        print("Gemini:", response.text)
+@app.route("/chat", methods=["POST"])
+def chat():
+    user_input = request.json.get("message", "")
+    response = model.generate_content(user_input)
+    return jsonify({"response": response.text})
 
 if __name__ == "__main__":
-    main()
+    app.run(host="0.0.0.0", port=10000)
